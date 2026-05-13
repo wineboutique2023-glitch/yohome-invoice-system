@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YOHOME Invoice System</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --blue:#246fb2; --blue2:#155f9f; --bg:#f4f7fb; --card:#ffffff; --line:#d7e1ec;
+      --text:#16202a; --muted:#667789; --soft:#eef4fa; --danger:#b42318; --green:#1f7a4d;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--text)}
+    .wrap{max-width:1200px;margin:auto;padding:22px}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+    h1{margin:0;font-size:28px}.sub{color:var(--muted);margin-top:6px;line-height:1.5}
+    .badge{background:#e8f4ee;color:var(--green);border:1px solid #b8dfcb;border-radius:999px;padding:8px 12px;font-weight:700;font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 8px 22px rgba(20,40,70,.06)}
+    .full{grid-column:1/-1}h2{margin:0 0 12px;font-size:20px}h3{margin:16px 0 8px;font-size:16px}
+    label{display:block;font-size:12px;font-weight:700;color:#425466;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px}
+    input,textarea,select{width:100%;border:1px solid #cbd8e6;border-radius:10px;padding:11px 12px;font-size:15px;background:#fff;color:var(--text)}
+    textarea{min-height:80px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}button{border:0;border-radius:10px;padding:11px 15px;font-size:15px;font-weight:700;cursor:pointer;background:var(--blue);color:#fff}
+    button:hover{background:var(--blue2)}button.secondary{background:#e8eef5;color:#102030}button.danger{background:#fee4e2;color:#912018}button.green{background:#20744a;color:#fff}
+    .list{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;max-height:260px;overflow-y:auto;margin-top:12px}.item{padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}.item:hover{background:var(--soft)}.item:last-child{border-bottom:0}.meta{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.4}
+    table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;font-size:14px}th{background:var(--soft);color:#425466}.right{text-align:right}.small{font-size:12px;color:var(--muted)}
+    .invoice-preview{background:white;border:1px solid #cfd9e5;border-radius:14px;padding:28px;margin-top:14px}.inv-head{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid var(--blue);padding-bottom:18px;margin-bottom:18px}.brand{font-size:24px;font-weight:800}.invoice-title{font-size:30px;font-weight:800;color:var(--blue);text-align:right}.box{background:#f7fafd;border:1px solid #d9e4ef;border-radius:12px;padding:14px;margin:12px 0}.totals{max-width:360px;margin-left:auto}.totals .line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e4ebf2}.totals .grand{font-size:22px;font-weight:800;color:var(--blue)}
+    .status{margin-top:10px;font-size:13px;color:var(--muted)}
+    @media(max-width:850px){.grid,.row,.row3{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.inv-head{flex-direction:column}.invoice-title{text-align:left}.full{grid-column:auto}}
+    @media print{body{background:white}.no-print{display:none!important}.wrap{max-width:none;padding:0}.card{box-shadow:none;border:0;padding:0}.invoice-preview{border:0}.grid>.card:not(.print-card){display:none}.print-card{display:block}.wrap>.top{display:none}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top no-print">
+      <div><h1>YOHOME Invoice System</h1><div class="sub">Cloud saved with Supabase: customers, payers and invoice history.</div></div>
+      <div class="badge" id="connectionStatus">Connecting...</div>
+    </div>
+
+    <div class="grid">
+      <div class="card no-print">
+        <h2>Customer Record</h2>
+        <label>Search Customer</label><input id="customerSearch" placeholder="Search customer name or phone..." oninput="loadCustomers()">
+        <div class="list" id="customerList"></div>
+        <h3>Customer Details</h3>
+        <label>Customer Name</label><input id="customerName">
+        <div class="row"><div><label>Phone</label><input id="customerPhone"></div><div><label>Email</label><input id="customerEmail"></div></div>
+        <label>Suburb / Area</label><input id="customerSuburb" placeholder="e.g. Abbotsford, Richmond">
+        <label>Notes</label><textarea id="customerNotes"></textarea>
+        <div class="btnrow"><button onclick="saveCustomer()">Save Customer</button><button class="secondary" onclick="clearCustomer()">Clear</button></div>
+        <div class="status" id="customerStatus"></div>
+      </div>
+
+      <div class="card no-print">
+        <h2>Bill To / Payer Record</h2>
+        <label>Search Payer</label><input id="payerSearch" placeholder="Search payer, company or phone..." oninput="loadPayers()">
+        <div class="list" id="payerList"></div>
+        <h3>Payer Details</h3>
+        <label>Payer Name</label><input id="payerName">
+        <div class="row"><div><label>Company</label><input id="payerCompany"></div><div><label>Phone</label><input id="payerPhone"></div></div>
+        <label>Email</label><input id="payerEmail">
+        <label>Address</label><textarea id="payerAddress"></textarea>
+        <div class="btnrow"><button onclick="savePayer()">Save Payer</button><button class="secondary" onclick="clearPayer()">Clear</button></div>
+        <div class="status" id="payerStatus"></div>
+      </div>
+
+      <div class="card full no-print">
+        <h2>Invoice Details</h2>
+        <div class="row3"><div><label>Invoice Number</label><input id="invoiceNumber" placeholder="Auto"></div><div><label>Invoice Date</label><input id="invoiceDate" type="date"></div><div><label>Due Date</label><input id="dueDate" type="date"></div></div>
+        <label>Service Description</label><input id="serviceDescription" value="Myotherapy / Remedial Massage Treatment">
+        <div class="row3"><div><label>Hourly Rate</label><input id="hourlyRate" type="number" step="0.01" value="80"></div><div><label>Quantity / Hours</label><input id="quantity" type="number" step="0.01" value="1"></div><div><label>GST</label><select id="gstMode"><option value="no">No GST</option><option value="yes">Add 10% GST</option></select></div></div>
+        <label>Notes</label><textarea id="invoiceNotes" placeholder="Payment notes, treatment reference, claim notes..."></textarea>
+        <div class="btnrow"><button class="green" onclick="saveInvoice()">Save Invoice to Cloud</button><button onclick="window.print()">Print / Save PDF</button><button class="secondary" onclick="newInvoice()">New Invoice</button></div>
+        <div class="status" id="invoiceStatus"></div>
+      </div>
+
+      <div class="card full print-card">
+        <h2 class="no-print">Invoice Preview</h2>
+        <div class="invoice-preview" id="invoicePreview">
+          <div class="inv-head"><div><div class="brand">YOHOME MASSAGE AND MYOTHERAPY</div><div class="small">Therapeutic Massage & Myotherapy Clinic</div><div class="small">Abbotsford VIC</div></div><div><div class="invoice-title">INVOICE</div><div class="small right" id="pInvNo"></div><div class="small right" id="pDates"></div></div></div>
+          <div class="row"><div class="box"><strong>Bill To</strong><div id="pBillTo"></div></div><div class="box"><strong>Customer</strong><div id="pCustomer"></div></div></div>
+          <table><thead><tr><th>Service Description</th><th class="right">Hourly Rate</th><th class="right">Quantity</th><th class="right">Amount</th></tr></thead><tbody><tr><td id="pService"></td><td class="right" id="pRate"></td><td class="right" id="pQty"></td><td class="right" id="pAmount"></td></tr></tbody></table>
+          <div class="totals"><div class="line"><span>Subtotal</span><strong id="pSubtotal"></strong></div><div class="line"><span>GST</span><strong id="pGst"></strong></div><div class="line grand"><span>Total</span><span id="pTotal"></span></div></div>
+          <div class="box"><strong>Notes</strong><div id="pNotes"></div></div>
+        </div>
+      </div>
+
+      <div class="card full no-print">
+        <h2>Invoice History</h2>
+        <label>Search Invoice</label><input id="invoiceSearch" placeholder="Search invoice, customer, payer..." oninput="loadInvoices()">
+        <div class="list" id="invoiceList"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const SUPABASE_URL = 'https://yubwwqcohdjtvvryvvzs.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_knSR2INPU5CB5Hm5xhkbRQ_-68g3a2t';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let selectedCustomerId = null, selectedPayerId = null;
+
+const $ = id => document.getElementById(id);
+const money = n => '$' + (Number(n||0)).toFixed(2);
+const esc = s => String(s||'').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const today = () => new Date().toISOString().slice(0,10);
+function addDays(dateStr, days){ const d=new Date(dateStr); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+
+function getTotals(){
+  const rate = Number($('hourlyRate').value || 0);
+  const qty = Number($('quantity').value || 0);
+  const subtotal = rate * qty;
+  const gst = $('gstMode').value === 'yes' ? subtotal * 0.10 : 0;
+  return {rate, qty, subtotal, gst, total: subtotal + gst};
+}
+function updatePreview(){
+  const t = getTotals();
+  $('pInvNo').textContent = 'Invoice No: ' + ($('invoiceNumber').value || 'Auto');
+  $('pDates').innerHTML = 'Date: ' + esc($('invoiceDate').value) + '<br>Due: ' + esc($('dueDate').value);
+  $('pBillTo').innerHTML = esc($('payerName').value || $('payerCompany').value || 'Payer') + '<br>' + esc($('payerCompany').value) + '<br>' + esc($('payerEmail').value) + '<br>' + esc($('payerPhone').value) + '<br>' + esc($('payerAddress').value);
+  $('pCustomer').innerHTML = esc($('customerName').value || 'Customer') + '<br>' + esc($('customerPhone').value) + '<br>' + esc($('customerEmail').value) + '<br>' + esc($('customerSuburb').value);
+  $('pService').textContent = $('serviceDescription').value;
+  $('pRate').textContent = money(t.rate);
+  $('pQty').textContent = t.qty.toFixed(2);
+  $('pAmount').textContent = money(t.subtotal);
+  $('pSubtotal').textContent = money(t.subtotal);
+  $('pGst').textContent = money(t.gst);
+  $('pTotal').textContent = money(t.total);
+  $('pNotes').textContent = $('invoiceNotes').value || 'Thank you.';
+}
+
+document.addEventListener('input', updatePreview);
+
+async function testConnection(){
+  try{
+    const { error } = await db.from('customers').select('id').limit(1);
+    $('connectionStatus').textContent = error ? 'Database needs checking' : 'Cloud Connected';
+    $('connectionStatus').style.color = error ? '#912018' : '#1f7a4d';
+  }catch(e){ $('connectionStatus').textContent = 'Connection Error'; }
+}
+
+async function loadCustomers(){
+  const q = $('customerSearch').value.trim();
+  let query = db.from('customers').select('*').order('created_at',{ascending:false}).limit(30);
+  if(q) query = query.or(`customer_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%,suburb.ilike.%${q}%`);
+  const {data,error}=await query;
+  if(error){ $('customerList').innerHTML='<div class="item">Load error</div>'; return; }
+  $('customerList').innerHTML = (data||[]).map(c=>`<div class="item" onclick='selectCustomer(${JSON.stringify(c)})'><strong>${esc(c.customer_name||'Unnamed')}</strong><div class="meta">${esc(c.phone||'')} ${esc(c.email||'')}<br>${esc(c.suburb||'')}</div></div>`).join('') || '<div class="item">No customers found</div>';
+}
+function selectCustomer(c){ selectedCustomerId=c.id; $('customerName').value=c.customer_name||''; $('customerPhone').value=c.phone||''; $('customerEmail').value=c.email||''; $('customerSuburb').value=c.suburb||''; $('customerNotes').value=c.notes||''; updatePreview(); }
+async function saveCustomer(){
+  const payload={customer_name:$('customerName').value,phone:$('customerPhone').value,email:$('customerEmail').value,suburb:$('customerSuburb').value,notes:$('customerNotes').value};
+  const {data,error}= selectedCustomerId ? await db.from('customers').update(payload).eq('id',selectedCustomerId).select().single() : await db.from('customers').insert(payload).select().single();
+  $('customerStatus').textContent = error ? error.message : 'Customer saved.'; if(!error){selectedCustomerId=data.id; loadCustomers();}
+}
+function clearCustomer(){selectedCustomerId=null; ['customerName','customerPhone','customerEmail','customerSuburb','customerNotes'].forEach(id=>$(id).value=''); updatePreview();}
+
+async function loadPayers(){
+  const q = $('payerSearch').value.trim();
+  let query = db.from('payers').select('*').order('created_at',{ascending:false}).limit(30);
+  if(q) query = query.or(`payer_name.ilike.%${q}%,company.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
+  const {data,error}=await query;
+  if(error){ $('payerList').innerHTML='<div class="item">Load error</div>'; return; }
+  $('payerList').innerHTML = (data||[]).map(p=>`<div class="item" onclick='selectPayer(${JSON.stringify(p)})'><strong>${esc(p.payer_name||p.company||'Unnamed')}</strong><div class="meta">${esc(p.company||'')}<br>${esc(p.phone||'')} ${esc(p.email||'')}</div></div>`).join('') || '<div class="item">No payers found</div>';
+}
+function selectPayer(p){ selectedPayerId=p.id; $('payerName').value=p.payer_name||''; $('payerCompany').value=p.company||''; $('payerEmail').value=p.email||''; $('payerPhone').value=p.phone||''; $('payerAddress').value=p.address||''; updatePreview(); }
+async function savePayer(){
+  const payload={payer_name:$('payerName').value,company:$('payerCompany').value,email:$('payerEmail').value,phone:$('payerPhone').value,address:$('payerAddress').value};
+  const {data,error}= selectedPayerId ? await db.from('payers').update(payload).eq('id',selectedPayerId).select().single() : await db.from('payers').insert(payload).select().single();
+  $('payerStatus').textContent = error ? error.message : 'Payer saved.'; if(!error){selectedPayerId=data.id; loadPayers();}
+}
+function clearPayer(){selectedPayerId=null; ['payerName','payerCompany','payerEmail','payerPhone','payerAddress'].forEach(id=>$(id).value=''); updatePreview();}
+
+async function getNextInvoiceNumber(){
+  const {data} = await db.from('invoices').select('invoice_number').order('id',{ascending:false}).limit(1);
+  let n = 1;
+  if(data && data[0] && data[0].invoice_number){ const m = data[0].invoice_number.match(/(\d+)(?!.*\d)/); if(m) n = parseInt(m[1],10)+1; }
+  $('invoiceNumber').value = 'INV-' + String(n).padStart(4,'0'); updatePreview();
+}
+async function saveInvoice(){
+  const t=getTotals();
+  if(!$('invoiceNumber').value) await getNextInvoiceNumber();
+  const payload={invoice_number:$('invoiceNumber').value,invoice_date:$('invoiceDate').value,due_date:$('dueDate').value,customer_name:$('customerName').value,payer_name:$('payerName').value||$('payerCompany').value,service_description:$('serviceDescription').value,hourly_rate:t.rate,quantity:t.qty,subtotal:t.subtotal,gst:t.gst,total:t.total,notes:$('invoiceNotes').value,payment_status:'Unpaid'};
+  const {error}=await db.from('invoices').insert(payload);
+  $('invoiceStatus').textContent = error ? error.message : 'Invoice saved to cloud.';
+  if(!error){ await loadInvoices(); await getNextInvoiceNumber(); }
+}
+async function loadInvoices(){
+  const q=$('invoiceSearch').value.trim();
+  let query=db.from('invoices').select('*').order('created_at',{ascending:false}).limit(50);
+  if(q) query=query.or(`invoice_number.ilike.%${q}%,customer_name.ilike.%${q}%,payer_name.ilike.%${q}%`);
+  const {data,error}=await query;
+  if(error){$('invoiceList').innerHTML='<div class="item">Load error</div>';return;}
+  $('invoiceList').innerHTML=(data||[]).map(i=>`<div class="item" onclick='loadInvoice(${JSON.stringify(i)})'><strong>${esc(i.invoice_number)} — ${money(i.total)}</strong><div class="meta">Customer: ${esc(i.customer_name||'')} | Payer: ${esc(i.payer_name||'')}<br>Date: ${esc(i.invoice_date||'')} | Saved: ${new Date(i.created_at).toLocaleString()}</div></div>`).join('') || '<div class="item">No invoices found</div>';
+}
+function loadInvoice(i){ $('invoiceNumber').value=i.invoice_number||''; $('invoiceDate').value=i.invoice_date||today(); $('dueDate').value=i.due_date||addDays(today(),7); $('customerName').value=i.customer_name||''; $('payerName').value=i.payer_name||''; $('serviceDescription').value=i.service_description||''; $('hourlyRate').value=i.hourly_rate||0; $('quantity').value=i.quantity||0; $('gstMode').value=Number(i.gst||0)>0?'yes':'no'; $('invoiceNotes').value=i.notes||''; updatePreview(); window.scrollTo({top:0,behavior:'smooth'}); }
+async function newInvoice(){ $('invoiceDate').value=today(); $('dueDate').value=addDays(today(),7); $('serviceDescription').value='Myotherapy / Remedial Massage Treatment'; $('hourlyRate').value='80'; $('quantity').value='1'; $('gstMode').value='no'; $('invoiceNotes').value=''; await getNextInvoiceNumber(); updatePreview(); }
+
+(async function init(){ $('invoiceDate').value=today(); $('dueDate').value=addDays(today(),7); await testConnection(); await loadCustomers(); await loadPayers(); await loadInvoices(); await getNextInvoiceNumber(); updatePreview(); })();
+</script>
+</body>
+</html>
