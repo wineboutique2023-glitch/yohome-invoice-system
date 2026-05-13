@@ -136,7 +136,7 @@ Ravenhall Melbourne Vic</textarea></div>
         <div class="full"><label>Customer Address</label><input id="customerAddress" value="33 Church St Abbotsford VIC 3067"></div>
       </div>
 
-      <h3 style="margin-top:14px">Service Items</h3>
+      <h3 style="margin-top:14px">Remedial Massage (SERT-0011, SERV-0043)s</h3>
       <div id="serviceRows"></div>
       <div class="btn-row">
         <button class="secondary" type="button" onclick="addServiceRow()">+ Add Service</button>
@@ -255,7 +255,7 @@ function addServiceRow(description='', rate='', qty=''){
   const row=document.createElement('div');
   row.className='service-row';
   row.innerHTML=`
-    <div class="field"><label>Description</label><input class="desc" value="${description}" placeholder="Remedial Massage (SERT-0011, SERV-0043)"></div>
+    <div class="field"><label>Description</label><input class="desc" value="${description}" placeholder="Service description"></div>
     <div class="field"><label>Hourly Rate</label><input class="rate" type="number" min="0" step="0.01" value="${rate}"></div>
     <div class="field"><label>Quantity</label><input class="qty" type="number" min="0" step="0.01" value="${qty}"></div>
     <div class="field"><label>Line Total</label><input class="lineTotal" disabled value="AUD 0.00"></div>
@@ -333,7 +333,7 @@ function fillForm(data){
   document.getElementById('bsb').value=data.bsb||'';
   document.getElementById('accountNumber').value=data.accountNumber||'';
   serviceRows.innerHTML='';
-  (data.services && data.services.length ? data.services : [{description:'Service item',rate:'65',qty:'1.00'}]).forEach(s=>addServiceRow(s.description||'', s.rate||'', s.qty||''));
+  (data.services && data.services.length ? data.services : [{description:'Remedial Massage (SERT-0011, SERV-0043)',rate:'65',qty:'1.00'}]).forEach(s=>addServiceRow(s.description||'', s.rate||'', s.qty||''));
   updatePreview();
 }
 
@@ -478,7 +478,7 @@ function saveContactRecord(){
     alert('Please enter at least a record name, Bill To name, or customer name.');
     return;
   }
-  const items=getContacts().filter(item => !keyword || (item.recordName||"").toLowerCase().includes(keyword) || (item.customerName||"").toLowerCase().includes(keyword) || (item.billToName||"").toLowerCase().includes(keyword));
+  const items=getContacts();
   const record={
     id: Date.now(),
     recordName: name,
@@ -498,7 +498,7 @@ function loadContactRecords(){
   const keyword = (document.getElementById('searchContact')?.value || '').toLowerCase();
 
   const list=document.getElementById('contactList');
-  const items=getContacts().filter(item => !keyword || (item.recordName||"").toLowerCase().includes(keyword) || (item.customerName||"").toLowerCase().includes(keyword) || (item.billToName||"").toLowerCase().includes(keyword));
+  const items=getContacts();
   if(!items.length){
     list.innerHTML='<div class="record-item"><div class="record-meta">No saved client or payer records yet.</div></div>';
     return;
@@ -555,7 +555,7 @@ function fillDemo(){
 }
 
 document.getElementById('invoiceDate').value=todayISO();
-addServiceRow('Service item','65','1.00');
+addServiceRow('Remedial Massage (SERT-0011, SERV-0043)','65','1.00');
 loadHistory();
 loadContactRecords();
 document.getElementById('invoiceNumber').value = getNextInvoiceNumber();
