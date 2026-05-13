@@ -478,7 +478,7 @@ function saveContactRecord(){
     alert('Please enter at least a record name, Bill To name, or customer name.');
     return;
   }
-  const items=getContacts().filter(item => !keyword || (item.recordName||"").toLowerCase().includes(keyword) || (item.customerName||"").toLowerCase().includes(keyword) || (item.billToName||"").toLowerCase().includes(keyword));
+  const items=getContacts();
   const record={
     id: Date.now(),
     recordName: name,
@@ -498,7 +498,7 @@ function loadContactRecords(){
   const keyword = (document.getElementById('searchContact')?.value || '').toLowerCase();
 
   const list=document.getElementById('contactList');
-  const items=getContacts().filter(item => !keyword || (item.recordName||"").toLowerCase().includes(keyword) || (item.customerName||"").toLowerCase().includes(keyword) || (item.billToName||"").toLowerCase().includes(keyword));
+  const items=getContacts();
   if(!items.length){
     list.innerHTML='<div class="record-item"><div class="record-meta">No saved client or payer records yet.</div></div>';
     return;
