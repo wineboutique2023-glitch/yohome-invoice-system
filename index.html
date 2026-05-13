@@ -255,7 +255,7 @@ function addServiceRow(description='', rate='', qty=''){
   const row=document.createElement('div');
   row.className='service-row';
   row.innerHTML=`
-    <div class="field"><label>Description</label><input class="desc" value="${description}" placeholder="Service description"></div>
+    <div class="field"><label>Description</label><input class="desc" value="${description}" placeholder="Remedial Massage (SERT-0011, SERV-0043)"></div>
     <div class="field"><label>Hourly Rate</label><input class="rate" type="number" min="0" step="0.01" value="${rate}"></div>
     <div class="field"><label>Quantity</label><input class="qty" type="number" min="0" step="0.01" value="${qty}"></div>
     <div class="field"><label>Line Total</label><input class="lineTotal" disabled value="AUD 0.00"></div>
